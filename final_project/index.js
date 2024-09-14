@@ -8,15 +8,42 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
+app.use("/customer", session({ secret: "fingerprint_customer", resave: true, saveUninitialized: true }))
 
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
+app.use("/customer/auth/*", function auth(req, res, next) {
+    if (req?.headers?.authorization?.startsWith('Bearer')) {
+        const token = req.headers.authorization.split(' ')[1] //lay phan tu sau Bearer\
+        jwt.verify(token, 'book', (err, decode) => {
+            if (err) return res.status(401).json({
+                success: false,
+                message: 'Invalid access token'
+            })
+            req.user = decode
+            next()
+        })
+    } else {
+        return res.status(401).json({
+            success: false,
+            message: 'Require authentication!'
+        })
+    }
+    // const token = req.headers['authorization'];
+    // if (!token) {
+    //     return res.status(403).json({ message: "No token provided" })
+    // }
+    // jwt.verify(token, 'your_jwt_secret', (err, decoded) => {
+    //     if (err) {
+    //         return res.status(403).json({ message: "Invalid token" });
+    //     }
+
+    //     req.username = decoded.username;  // lưu thông tin người dùng vào req để sử dụng trong các route
+    //     next();
+    // });
 });
- 
-const PORT =5000;
+
+const PORT = 5000;
 
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-app.listen(PORT,()=>console.log("Server is running"));
+app.listen(PORT, () => console.log("Server is running"));
